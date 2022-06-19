@@ -1416,7 +1416,7 @@
           "xunit.extensibility.core": "[2.4.1]"
         }
       },
-      "Migrator": {
+      "CosmosDb.Migrator": {
         "type": "Project",
         "dependencies": {
           "Microsoft.Azure.Cosmos": "3.26.1",

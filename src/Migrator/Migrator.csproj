@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
-        <AssemblyName>Migrator</AssemblyName>
+        <AssemblyName>CosmosDb.Migrator</AssemblyName>
         <RootNamespace>CosmosDb.Migrator</RootNamespace>
     </PropertyGroup>
 

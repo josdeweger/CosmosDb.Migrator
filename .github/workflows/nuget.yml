@@ -41,7 +41,10 @@ jobs:
       run: echo "VERSION=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_ENV
       
     - name: Setup NuGet
-      uses: NuGet/setup-nuget@v1.0.5
+      uses: nuget/setup-nuget@v1
+      with:
+        nuget-api-key: ${{ secrets.NUGET_KEY }}
+        nuget-version: '5.x'
 
     - name: Restore dependencies
       run: nuget restore $SOLUTION
@@ -53,6 +56,4 @@ jobs:
       run: dotnet pack ${{ env.PROJECT_PATH }} --no-restore --no-build --configuration Release --include-symbols -p:PackageVersion=${{ env.VERSION }} --output ${{ env.PACKAGE_OUTPUT_DIRECTORY }}
     
     - name: Publish
-      run: nuget push ${{ env.PACKAGE_OUTPUT_DIRECTORY }}/*.nupkg -Source '${{ env.NUGET_SOURCE_URL }}' -ApiKey ${{env.NUGET_AUTH_TOKEN}} -SkipDuplicate
-      env:
-        NUGET_AUTH_TOKEN: ${{ secrets.NUGET_AUTH_TOKEN }}
+      run: nuget push ${{ env.PACKAGE_OUTPUT_DIRECTORY }}/*.nupkg -Source '${{ env.NUGET_SOURCE_URL }}' -ApiKey ${{ secrets.NUGET_KEY }} -SkipDuplicate

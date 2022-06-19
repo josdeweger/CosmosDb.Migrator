@@ -9,6 +9,7 @@ env:
   PROJECT_PATH: 'Migrator/Migrator.csproj'
   PACKAGE_OUTPUT_DIRECTORY: ${{ github.workspace }}/output
   NUGET_SOURCE_URL: 'https://api.nuget.org/v3/index.json'
+  NUGET_KEY: ${{ secrets.NUGET_KEY }}
     
 defaults:
  run:
@@ -43,7 +44,6 @@ jobs:
     - name: Setup NuGet
       uses: nuget/setup-nuget@v1
       with:
-        nuget-api-key: ${{ secrets.NUGET_KEY }}
         nuget-version: '5.x'
 
     - name: Restore dependencies
@@ -56,4 +56,4 @@ jobs:
       run: dotnet pack ${{ env.PROJECT_PATH }} --no-restore --no-build --configuration Release --include-symbols -p:PackageVersion=${{ env.VERSION }} --output ${{ env.PACKAGE_OUTPUT_DIRECTORY }}
     
     - name: Publish
-      run: dotnet nuget push ${{ env.PACKAGE_OUTPUT_DIRECTORY }}/*.nupkg --source '${{ env.NUGET_SOURCE_URL }}' --api-key ${{ secrets.NUGET_KEY }} --skip-duplicate
+      run: dotnet nuget push ${{ env.PACKAGE_OUTPUT_DIRECTORY }}/*.nupkg --source '${{ env.NUGET_SOURCE_URL }}' --api-key ${{ env.NUGET_KEY }} --skip-duplicate

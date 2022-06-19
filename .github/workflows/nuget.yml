@@ -4,6 +4,11 @@ on:
   push:
     tags:
     - "v*"
+
+env:
+  PROJECT_PATH: 'src/Migrator/Migrator.csproj'
+  PACKAGE_OUTPUT_DIRECTORY: ${{ github.workspace }}\output
+  NUGET_SOURCE_URL: 'https://api.nuget.org/v3/index.json'
     
 defaults:
  run:
@@ -41,13 +46,11 @@ jobs:
     - name: Restore dependencies
       run: nuget restore $SOLUTION
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 6.0.x
-
     - name: Build
       run: dotnet build $SOLUTION --configuration $BUILD_CONFIG --no-restore
       
+    - name: 'Pack project'
+      run: dotnet pack ${{ env.PROJECT_PATH }} --no-restore --no-build --configuration Release --include-symbols -p:PackageVersion=${{ env.VERSION }} --output ${{ env.PACKAGE_OUTPUT_DIRECTORY }}
+    
     - name: Publish
-      run: nuget push **\*.nupkg -Source 'https://api.nuget.org/v3/index.json' -ApiKey ${{secrets.NUGET_AUTH_TOKEN}} -SkipDuplicate
+      run: nuget push **\*.nupkg -Source '{{ env.NUGET_SOURCE_URL }}' -ApiKey ${{secrets.NUGET_AUTH_TOKEN}} -SkipDuplicate

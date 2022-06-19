@@ -53,4 +53,4 @@ jobs:
       run: dotnet pack ${{ env.PROJECT_PATH }} --no-restore --no-build --configuration Release --include-symbols -p:PackageVersion=${{ env.VERSION }} --output ${{ env.PACKAGE_OUTPUT_DIRECTORY }}
     
     - name: Publish
-      run: nuget push **\*.nupkg -Source '{{ env.NUGET_SOURCE_URL }}' -ApiKey ${{secrets.NUGET_AUTH_TOKEN}} -SkipDuplicate
+      run: nuget push **\*.nupkg -Source '${{ env.NUGET_SOURCE_URL }}' -ApiKey ${{secrets.NUGET_AUTH_TOKEN}} -SkipDuplicate

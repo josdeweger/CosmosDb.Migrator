@@ -7,7 +7,7 @@ on:
 
 env:
   PROJECT_PATH: 'Migrator/Migrator.csproj'
-  PACKAGE_OUTPUT_DIRECTORY: ${{ github.workspace }}\output
+  PACKAGE_OUTPUT_DIRECTORY: ${{ github.workspace }}/output
   NUGET_SOURCE_URL: 'https://api.nuget.org/v3/index.json'
     
 defaults:
@@ -53,4 +53,4 @@ jobs:
       run: dotnet pack ${{ env.PROJECT_PATH }} --no-restore --no-build --configuration Release --include-symbols -p:PackageVersion=${{ env.VERSION }} --output ${{ env.PACKAGE_OUTPUT_DIRECTORY }}
     
     - name: Publish
-      run: nuget push ${{ env.PACKAGE_OUTPUT_DIRECTORY }}\*.nupkg -Source '${{ env.NUGET_SOURCE_URL }}' -ApiKey ${{secrets.NUGET_AUTH_TOKEN}} -SkipDuplicate
+      run: nuget push ${{ env.PACKAGE_OUTPUT_DIRECTORY }}/*.nupkg -Source '${{ env.NUGET_SOURCE_URL }}' -ApiKey ${{secrets.NUGET_AUTH_TOKEN}} -SkipDuplicate

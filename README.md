@@ -1,3 +1,6 @@
+![CI](https://github.com/josdeweger/CosmosDb.Migrator/actions/workflows/ci.yml/badge.svg)
+![Nuget](https://img.shields.io/nuget/v/cosmosdb.migrator)
+
 ## Introduction 
 The CosmosDb Migrator is aimed at developers/teams that need a deterministic way to create, (unit) test and run CosmosDb migrations. 
 This tries solving the problem of creating numerous scripts to create/alter document structures and collections. The idea is 

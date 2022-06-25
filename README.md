@@ -97,8 +97,8 @@ public class ChangeContainerNameTestToTest2 : CosmosDbMigration
 ```
 
 ## Running migrations
-To actually run the migrations the `Migrator` can be used. It can be used inside any process that can be triggered, for instance
-an Azure (Durable) Function, a Console Application etc. Make sure you don't run the `Migrator` inside an application
+To actually run the migrations the `MigrationRunner` can be used. It can be used inside any process that can be triggered, for instance
+an Azure (Durable) Function, a Console Application etc. Make sure you don't run the `MigrationRunner` inside an application
 that might run multiple instances, since these could run the migrations simultaneously, resulting in strange / unwanted behaviour.
 
 You as a developer are responsible for setting up the CosmosDb Client properly to be able to handle bulk execution, and to setup throughput 
@@ -130,7 +130,7 @@ var cosmosClient =
 ### Temporarily setting throughput
 When migrating large amounts of data, with low throughput settings (e.g. 400 RU/s) on the collection, a lot of retries will occur. This will 
 significantly slow down the migrations. When hitting the max amount of retries the migrations even start failing. Temporarily increase 
-the throughput of the collection to a high number of RU/s. The `Migrator` will log every batch it executes, including migrations that 
+the throughput of the collection to a high number of RU/s. The `MigrationRunner` will log every batch it executes, including migrations that 
 failed when all retries failed. Make sure you reinstate old throughput settings, otherwise you might receive an unexpected bill at the end of 
 the month!
 
@@ -156,15 +156,15 @@ Check out the `deploy` folder in this repo for an Azure DevOps pipeline example.
 
 ## How it works under the hood
 ### General workings
-- The user of the library instantiates the `Migrator` with a set of assemblies to scan for migrations or
+- The user of the library instantiates the `MigrationRunner` with a set of assemblies to scan for migrations or
 with a list of migrations to run
 - When performing an `Up` migration:
-    - the `Migrator` will look in the collection for a document called `versionDocument`. It will check on 
+    - the `MigrationRunner` will look in the collection for a document called `versionDocument`. It will check on 
       what version the collection currently is. If none is found it is seen as version 0
     - all the migration definitions with a version lower or equal to the version in the `versionDocument` will be
       filtered out so only the relevant migrations remain
     - the action that should be performed on the documents in the collection will be run against the documents
-      with the `documentType` that is defined in the migration definition. This will be done in batches, the `Migrator`
+      with the `documentType` that is defined in the migration definition. This will be done in batches, the `MigrationRunner`
       will create batches of tasks and run them using `Task.WhenAll`. When Bulk Execution is enabled on the CosmosDb Client 
       (which it should!), the CosmosDb Client will be smart enough to handle these tasks as performant as possible 
     - the new version will be stored with the same partition key, overwriting the existing document

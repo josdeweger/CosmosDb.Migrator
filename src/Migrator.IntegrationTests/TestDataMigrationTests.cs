@@ -1,9 +1,6 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Threading.Tasks;
-using CosmosDb.Migrator.Tests.Documents;
-using CosmosDb.Migrator.Tests.Migrations;
+using CosmosDb.Migrator.IntegrationTests.Documents;
+using CosmosDb.Migrator.IntegrationTests.Migrations;
 using FluentAssertions;
 using FluentAssertions.Execution;
 using Microsoft.Azure.Cosmos;
@@ -12,7 +9,7 @@ using Moq;
 using Newtonsoft.Json;
 using Xunit;
 
-namespace CosmosDb.Migrator.Tests;
+namespace CosmosDb.Migrator.IntegrationTests;
 
 public class TestDataMigrationUpTests : IAsyncLifetime, IClassFixture<CosmosDbEmulatorFixture>
 {
@@ -40,7 +37,7 @@ public class TestDataMigrationUpTests : IAsyncLifetime, IClassFixture<CosmosDbEm
     public async Task GivenExistingTestData_WhenMigratingToNewVersion_DocumentsAreMigrated()
     {
         var migrations = new List<Type> {typeof(TestDataMigration)};
-        var runner = new global::CosmosDb.Migrator.Migrator(_emulatorFixture.TestDatabase, _loggerMock.Object, migrations, _serializer);
+        var runner = new MigrationRunner(_emulatorFixture.TestDatabase, _loggerMock.Object, migrations, _serializer);
 
         await runner.MigrateUp();
         
@@ -65,7 +62,7 @@ public class TestDataMigrationUpTests : IAsyncLifetime, IClassFixture<CosmosDbEm
     public async Task GivenExistingTestData_WhenMigratingUpAndDown_DocumentsAreTheSameAsBefore()
     {
         var migrations = new List<Type> {typeof(TestDataMigration)};
-        var runner = new global::CosmosDb.Migrator.Migrator(_emulatorFixture.TestDatabase, _loggerMock.Object, migrations, _serializer);
+        var runner = new MigrationRunner(_emulatorFixture.TestDatabase, _loggerMock.Object, migrations, _serializer);
 
         await runner.MigrateUp();
         

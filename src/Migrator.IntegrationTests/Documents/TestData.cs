@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace CosmosDb.Migrator.Tests.Documents;
+﻿namespace CosmosDb.Migrator.IntegrationTests.Documents;
 
 public record TestDataDocument(
     string Id,

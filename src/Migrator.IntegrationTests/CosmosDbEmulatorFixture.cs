@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.Azure.Cosmos;
+﻿using Microsoft.Azure.Cosmos;
 
-namespace CosmosDb.Migrator.Tests;
+namespace CosmosDb.Migrator.IntegrationTests;
 
 /// <summary>
 /// Cosmos db emulator fixture, is run for every test class and disposed when all facts in a class have ran

@@ -3,7 +3,7 @@
     <PropertyGroup>
         <TargetFramework>net6.0</TargetFramework>
         <IsPackable>false</IsPackable>
-        <RootNamespace>CosmosDb.Migrator.Tests</RootNamespace>
+        <RootNamespace>CosmosDb.Migrator.IntegrationTests</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>

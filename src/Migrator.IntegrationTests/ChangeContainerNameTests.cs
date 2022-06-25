@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
-using CosmosDb.Migrator.Tests.Documents;
-using CosmosDb.Migrator.Tests.Migrations;
+using CosmosDb.Migrator.IntegrationTests.Documents;
+using CosmosDb.Migrator.IntegrationTests.Migrations;
 using FluentAssertions;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
@@ -12,7 +8,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Xunit;
 
-namespace CosmosDb.Migrator.Tests;
+namespace CosmosDb.Migrator.IntegrationTests;
 
 public class ChangeContainerNameUpTests : IAsyncLifetime, IClassFixture<CosmosDbEmulatorFixture>
 {
@@ -36,7 +32,7 @@ public class ChangeContainerNameUpTests : IAsyncLifetime, IClassFixture<CosmosDb
     public async Task GivenAnEmptyCollection_WhenRenamingTheCollectionUp_TheNewCollectionCanBeRetrieved()
     {
         var migrations = new List<Type> {typeof(ChangeContainerNameTestToTest2)};
-        var runner = new global::CosmosDb.Migrator.Migrator(_emulatorFixture.TestDatabase, _loggerMock.Object, migrations, _serializer);
+        var runner = new MigrationRunner(_emulatorFixture.TestDatabase, _loggerMock.Object, migrations, _serializer);
 
         await runner.MigrateUp();
 
@@ -50,7 +46,7 @@ public class ChangeContainerNameUpTests : IAsyncLifetime, IClassFixture<CosmosDb
     public async Task GivenAnEmptyCollection_WhenRenamingTheCollectionUpAndDown_TheCollectionCanBeRetrievedByOldCollectionName()
     {
         var migrations = new List<Type> {typeof(ChangeContainerNameTestToTest2)};
-        var runner = new global::CosmosDb.Migrator.Migrator(_emulatorFixture.TestDatabase, _loggerMock.Object, migrations, _serializer);
+        var runner = new MigrationRunner(_emulatorFixture.TestDatabase, _loggerMock.Object, migrations, _serializer);
 
         await runner.MigrateUp();
         await runner.MigrateDown(0);
@@ -69,7 +65,7 @@ public class ChangeContainerNameUpTests : IAsyncLifetime, IClassFixture<CosmosDb
         await _emulatorFixture.SeedContainer(oldContainerReference, generatedDocs);
         
         var migrations = new List<Type> {typeof(ChangeContainerNameTestToTest2)};
-        var runner = new global::CosmosDb.Migrator.Migrator(_emulatorFixture.TestDatabase, _loggerMock.Object, migrations, _serializer);
+        var runner = new MigrationRunner(_emulatorFixture.TestDatabase, _loggerMock.Object, migrations, _serializer);
 
         await runner.MigrateUp();
 

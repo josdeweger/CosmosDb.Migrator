@@ -2,8 +2,12 @@
 
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
-        <AssemblyName>CosmosDb.Migrator</AssemblyName>
-        <RootNamespace>CosmosDb.Migrator</RootNamespace>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AssemblyName>MigrationRunner</AssemblyName>
+        <RootNamespace>Vattenfall.CosmosDb.MigrationRunner</RootNamespace>
+        <LangVersion>10</LangVersion>
+        <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     </PropertyGroup>
 
     <ItemGroup>

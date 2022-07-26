@@ -15,6 +15,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionIt
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Migrator.UnitTests", "Migrator.UnitTests\Migrator.UnitTests.csproj", "{9259A19A-1BAC-49B3-88F8-3623B7360BAA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Migrator.Tests.Shared", "Migrator.Tests.Shared\Migrator.Tests.Shared.csproj", "{ADF644D0-AF3F-4735-80D3-74B1031621AD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,5 +35,9 @@ Global
 		{9259A19A-1BAC-49B3-88F8-3623B7360BAA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9259A19A-1BAC-49B3-88F8-3623B7360BAA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9259A19A-1BAC-49B3-88F8-3623B7360BAA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ADF644D0-AF3F-4735-80D3-74B1031621AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ADF644D0-AF3F-4735-80D3-74B1031621AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ADF644D0-AF3F-4735-80D3-74B1031621AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ADF644D0-AF3F-4735-80D3-74B1031621AD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

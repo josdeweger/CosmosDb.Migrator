@@ -1,5 +1,5 @@
-using CosmosDb.Migrator.IntegrationTests.Documents;
-using CosmosDb.Migrator.IntegrationTests.Migrations;
+using CosmosDb.Migrator.Tests.Shared.Documents;
+using CosmosDb.Migrator.Tests.Shared.Migrations;
 using FluentAssertions;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;

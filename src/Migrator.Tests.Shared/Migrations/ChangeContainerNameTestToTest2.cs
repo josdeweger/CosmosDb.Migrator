@@ -1,4 +1,4 @@
-﻿namespace CosmosDb.Migrator.IntegrationTests.Migrations;
+﻿namespace CosmosDb.Migrator.Tests.Shared.Migrations;
 
 [Migration(version: 20220415142200)]
 public class ChangeContainerNameTestToTest2 : CosmosDbMigration

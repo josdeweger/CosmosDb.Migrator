@@ -257,7 +257,11 @@ public class MigrationRunner : IMigrationRunner
             {
                 var oldDoc = documentToken.ToObject(migration.MigrationConfig.FromType, _serializer);
                 var newDoc = migration.MigrationConfig.Invoke(oldDoc) as dynamic;
-                var partitionKey = documentToken[migration.MigrationConfig.PartitionKey].Value<string>();
+                
+                var partitionKey = ((JObject)documentToken)
+                    .GetValue(migration.MigrationConfig.PartitionKey, StringComparison.OrdinalIgnoreCase)
+                    ?.Value<string>();
+                
                 newDoc.Version = newVersion;
 
                 var task = migration.MigrationConfig.ToType.IsSubclassOf(typeof(Migratable))

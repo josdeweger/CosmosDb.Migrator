@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AssemblyName>CosmosDb.Migrator.Tests.Shared</AssemblyName>
+        <RootNamespace>CosmosDb.Migrator.Tests.Shared</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Migrator\Migrator.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="AutoFixture" Version="4.17.0" />
+      <PackageReference Include="AutoFixture.AutoMoq" Version="4.17.0" />
+      <PackageReference Include="Moq" Version="4.16.1" />
+    </ItemGroup>
+
+</Project>

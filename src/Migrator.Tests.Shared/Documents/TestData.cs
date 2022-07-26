@@ -1,4 +1,4 @@
-﻿namespace CosmosDb.Migrator.IntegrationTests.Documents;
+﻿namespace CosmosDb.Migrator.Tests.Shared.Documents;
 
 public record TestDataDocument(
     string Id,

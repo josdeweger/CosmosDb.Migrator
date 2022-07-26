@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
-using CosmosDb.Migrator.IntegrationTests.Documents;
+using CosmosDb.Migrator.Tests.Shared.Documents;
 
-namespace CosmosDb.Migrator.IntegrationTests.Migrations;
+namespace CosmosDb.Migrator.Tests.Shared.Migrations;
 
 [Migration(version: 20220419081800)]
 public class TestDataMigration : CosmosDbMigration

@@ -1,3 +1,5 @@
+using System.Text;
+using System.Text.Json;
 using AutoFixture;
 using AutoFixture.AutoMoq;
 using Microsoft.Azure.Cosmos;
@@ -7,25 +9,54 @@ namespace CosmosDb.Migrator.Tests.Shared;
 
 public sealed class DatabaseMockBuilder
 {
-    private readonly Fixture _fixture = new();
-    private string? _containerName;
     private readonly Mock<Database> _dbMock = new();
-    
-    public readonly Mock<Container> ContainerMock = new();
+    private readonly List<Mock<Container>> _containerMocks = new();
 
-    public DatabaseMockBuilder()
+    public DatabaseMockBuilder WithContainer<T>(string containerName,
+        Func<ContainerMockBuilder<T>, Mock<Container>> func) where T : IMigratable
     {
-        _fixture.Customize(new AutoMoqCustomization());
-    }
-    
-    public DatabaseMockBuilder WithContainer(string name)
-    {
-        _containerName = name;
+        var containerMock = func(new ContainerMockBuilder<T>(containerName));
 
+        var containerResponseMock = new Mock<ContainerResponse>();
+        containerResponseMock.SetupGet(m => m.Container).Returns(containerMock.Object);
+
+        _dbMock.Setup(m => m.CreateContainerIfNotExistsAsync(It.IsAny<ContainerProperties>(),
+                It.IsAny<int?>(),
+                It.IsAny<RequestOptions>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(containerResponseMock.Object);
+
+        _dbMock.Setup(m => m.GetContainer(containerMock.Object.Id)).Returns(containerMock.Object);
+
+        _containerMocks.Add(containerMock);
+        
         return this;
     }
 
-    public DatabaseMockBuilder WithVersionDocument(long version)
+    public Mock<Container> GetContainerMock(string containerName)
+    {
+        return _containerMocks.First(c => c.Object.Id.Equals(containerName));
+    }
+    
+    public Mock<Database> Build()
+    {   
+        return _dbMock;
+    }
+}
+
+public class ContainerMockBuilder<T> where T : IMigratable
+{
+    private readonly Fixture _fixture = new();
+    private readonly List<T> _docs = new();
+    public readonly Mock<Container> ContainerMock = new();
+
+    public ContainerMockBuilder(string containerName)
+    {
+        ContainerMock.SetupGet(x => x.Id).Returns(containerName);
+        _fixture.Customize(new AutoMoqCustomization());
+    }
+
+    public ContainerMockBuilder<T> WithVersionDocument(long version)
     {
         var versionDoc = new VersionDocument("version-doc-id", nameof(VersionDocument), version);
         var itemResponseMock = new Mock<ItemResponse<VersionDocument>>();
@@ -42,11 +73,16 @@ public sealed class DatabaseMockBuilder
         return this;
     }
 
-    public DatabaseMockBuilder WithQueryResult<T>(Func<Fixture, List<T>> docBuilderFunc) 
-        where T : IMigratable
+    public ContainerMockBuilder<T> AddDocument(Func<Fixture, T> docBuilderFunc)
     {
-        var docs = docBuilderFunc(_fixture);
-        var response = new DocumentsResponse<T>(docs);
+        _docs.Add(docBuilderFunc(_fixture));
+
+        return this;
+    }
+
+    public Mock<Container> Build()
+    {
+        var response = new DocumentsResponse<T>(_docs);
         var docsAsByteArr = ObjectToByteArray(response);
 
         var responseMessage = _fixture
@@ -62,7 +98,7 @@ public sealed class DatabaseMockBuilder
             .SetupSequence(f => f.HasMoreResults)
             .Returns(() =>
             {
-                if (i == docs.Count)
+                if (i == _docs.Count)
                 {
                     return false;
                 }
@@ -78,36 +114,14 @@ public sealed class DatabaseMockBuilder
                     It.IsAny<QueryRequestOptions>()))
             .Returns(feedIteratorMock.Object);
 
-        return this;
-    }
-
-    public Mock<Database> Build()
-    {
-        if (string.IsNullOrEmpty(_containerName))
-        {
-            throw new Exception($"{_containerName} can not be empty");
-        }
-        
-        var containerResponseMock = new Mock<ContainerResponse>();
-        containerResponseMock.SetupGet(m => m.Container).Returns(ContainerMock.Object);
-
-        _dbMock.Setup(m => m.CreateContainerIfNotExistsAsync(It.IsAny<ContainerProperties>(),
-                It.IsAny<int?>(),
-                It.IsAny<RequestOptions>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(containerResponseMock.Object);
-
-        _dbMock.Setup(m => m.GetContainer(_containerName)).Returns(ContainerMock.Object);
-        
-        return _dbMock;
+        return ContainerMock;
     }
     
-    private byte[] ObjectToByteArray(object obj)
+    private byte[] ObjectToByteArray<T>(DocumentsResponse<T> obj) where T : IMigratable
     {
-        // proper way to serialize object
-        var objToString = System.Text.Json.JsonSerializer.Serialize(obj);
-        // convert that that to string with ascii you can chose what ever encoding want
-        return System.Text.Encoding.ASCII.GetBytes(objToString);
+        var objToString = JsonSerializer.Serialize(obj);
+        
+        return Encoding.ASCII.GetBytes(objToString);
     }
 }
 

@@ -36,7 +36,7 @@ public class TestDataMigrationUpTests : IAsyncLifetime, IClassFixture<CosmosDbEm
     [Fact]
     public async Task GivenExistingTestData_WhenMigratingToNewVersion_DocumentsAreMigrated()
     {
-        var migrations = new List<Type> {typeof(TestDataMigration)};
+        var migrations = new List<Type> {typeof(TestMigration)};
         var runner = new MigrationRunner(_emulatorFixture.TestDatabase, _loggerMock.Object, migrations, _serializer);
 
         await runner.MigrateUp();
@@ -61,7 +61,7 @@ public class TestDataMigrationUpTests : IAsyncLifetime, IClassFixture<CosmosDbEm
     [Fact]
     public async Task GivenExistingTestData_WhenMigratingUpAndDown_DocumentsAreTheSameAsBefore()
     {
-        var migrations = new List<Type> {typeof(TestDataMigration)};
+        var migrations = new List<Type> {typeof(TestMigration)};
         var runner = new MigrationRunner(_emulatorFixture.TestDatabase, _loggerMock.Object, migrations, _serializer);
 
         await runner.MigrateUp();

@@ -69,36 +69,31 @@ public class MigrationRunner : IMigrationRunner
     /// </summary>
     public async Task MigrateUp()
     {
-        var migrationsPerCollection = CreateMigrationInfoList()
+        var migrationInfos = CreateMigrationInfoList()
             .OrderBy(x => x.Version)
-            .GroupBy(x => x.Migration.MigrationConfig.CollectionName)
             .ToList();
         
-        //iterate over migrations per collection
-        foreach (var migrationInfosForCurCollection in migrationsPerCollection)
+        //iterate over migrations for this collection
+        foreach (var migrationInfo in migrationInfos)
         {
-            //iterate over migrations for this collection
-            foreach (var migrationInfo in migrationInfosForCurCollection)
+            //execute the Up method to set all the properties on the MigrationConfig property
+            migrationInfo.Migration.Up();
+        
+            //get the current version from the existing collection (if any)
+            var currentVersion = await _currentVersionProvider.Get(
+                collectionName: migrationInfo.Migration.MigrationConfig.CollectionName,
+                partitionKeyPath: migrationInfo.Migration.MigrationConfig.PartitionKeyPath);
+
+            if (migrationInfo.Version <= currentVersion)
             {
-                //execute the Up method to set all the properties on the MigrationConfig property
-                migrationInfo.Migration.Up();
-            
-                //get the current version from the existing collection (if any)
-                var currentVersion = await _currentVersionProvider.Get(
-                    collectionName: migrationInfo.Migration.MigrationConfig.CollectionName,
-                    partitionKeyPath: migrationInfo.Migration.MigrationConfig.PartitionKeyPath);
-
-                if (migrationInfo.Version <= currentVersion)
-                {
-                    continue;
-                }
-            
-                _logger.LogInformation("Start Up migration (version: {Version}) on collection {CollectionName}", 
-                    migrationInfo.Version, migrationInfo.Migration.MigrationConfig.CollectionName);
-
-                await RunMigration(migrationInfo.Migration, MigrationDirection.Up, migrationInfo.Version,
-                    migrationInfo.Version);
+                continue;
             }
+        
+            _logger.LogInformation("Start Up migration (version: {Version}) on collection {CollectionName}", 
+                migrationInfo.Version, migrationInfo.Migration.MigrationConfig.CollectionName);
+
+            await RunMigration(migrationInfo.Migration, MigrationDirection.Up, migrationInfo.Version,
+                migrationInfo.Version);
         }
     }
 
@@ -112,19 +107,13 @@ public class MigrationRunner : IMigrationRunner
     /// </summary>
     public async Task MigrateDown(long toVersion)
     {
-        var migrationsPerCollection = CreateMigrationInfoList()
+        var migrationInfos = CreateMigrationInfoList()
             .Where(x => x.Version >= toVersion)
             .OrderByDescending(x => x.Version)
-            .GroupBy(x => x.Migration.MigrationConfig.CollectionName)
             .ToList();
         
-        //iterate over migrations per collection
-        foreach (var migrationInfosForCurCollection in migrationsPerCollection)
-        {
-            var curMigrationInfosWithIndex = migrationInfosForCurCollection.WithIndex().ToList();
-            
             //iterate over migrations for this collection
-            foreach (var (migrationInfo, index) in curMigrationInfosWithIndex)
+            foreach (var (migrationInfo, index) in migrationInfos.WithIndex().ToList())
             {
                 //execute the Down method to set all the properties on the MigrationConfig property
                 migrationInfo.Migration.Down();
@@ -132,14 +121,13 @@ public class MigrationRunner : IMigrationRunner
                 _logger.LogInformation("Start Down migration (version: {Version}) on collection {CollectionName}",
                     migrationInfo.Version, migrationInfo.Migration.MigrationConfig.CollectionName);
 
-                var previousVersion = index < curMigrationInfosWithIndex.Count - 1
-                    ? curMigrationInfosWithIndex[index + 1].item.Version
+                var previousVersion = index < migrationInfos.Count - 1
+                    ? migrationInfos[index + 1].Version
                     : 0;
 
                 await RunMigration(migrationInfo.Migration, MigrationDirection.Down, migrationInfo.Version,
                     previousVersion);
             }
-        }
     }
 
     private IEnumerable<MigrationInfo> CreateMigrationInfoList()
@@ -159,38 +147,38 @@ public class MigrationRunner : IMigrationRunner
         long migrationVersion, 
         long newVersion)
     {
-        var migrationTask = migration.MigrationConfig.MigrationType switch
+        var migrationTask = migration.MigrationConfig switch
         {
-            MigrationType.CollectionRename => RunCollectionRename(migration, newVersion),
-            MigrationType.DocumentMigration => RunDataMigration(migration, direction, migrationVersion, newVersion),
+            CollectionRenameConfig config => RunCollectionRename(config, newVersion),
+            DataMigrationConfig config => RunDataMigration(config, direction, migrationVersion, newVersion),
             _ => throw new ArgumentOutOfRangeException()
         };
 
         await migrationTask;
     }
 
-    private async Task RunCollectionRename(CosmosDbMigration migration, long? newVersion)
+    private async Task RunCollectionRename(CollectionRenameConfig config, long? newVersion)
     {
         _logger.LogInformation("Renaming collection {FromCollection} to {ToCollection} started",
-            migration.MigrationConfig.FromCollectionName, migration.MigrationConfig.ToCollectionName);
+            config.CollectionName, config.ToCollectionName);
         
-        var oldContainer = _db.GetContainer(migration.MigrationConfig.FromCollectionName);
+        var oldContainer = _db.GetContainer(config.CollectionName);
         var response = await oldContainer.ReadContainerAsync();
         var throughput = await oldContainer.ReadThroughputAsync();
 
         var newContainerProps = response.Resource;
-        newContainerProps.Id = migration.MigrationConfig.ToCollectionName;
+        newContainerProps.Id = config.ToCollectionName;
         
         var newContainerResponse = await _db.CreateContainerIfNotExistsAsync(newContainerProps);
         var newContainer = newContainerResponse.Container;
         await newContainer.ReplaceThroughputAsync(throughput ?? 400);
         
-        await CopyAllDataBetweenCollections(oldContainer, newContainer, migration.MigrationConfig.PartitionKey, newVersion);
+        await CopyAllDataBetweenCollections(oldContainer, newContainer, config.PartitionKey, newVersion);
         await oldContainer.DeleteContainerAsync();
-        await UpdateCurrentVersion(newContainer, migration.MigrationConfig.PartitionKey, newVersion);
+        await UpdateCurrentVersion(newContainer, config.PartitionKey, newVersion);
         
         _logger.LogInformation("Renaming collection {FromCollection} to {ToCollection} finished",
-            migration.MigrationConfig.FromCollectionName, migration.MigrationConfig.ToCollectionName);
+            config.CollectionName, config.ToCollectionName);
     }
 
     private async Task CopyAllDataBetweenCollections(Container oldContainer, Container newContainer, string partitionKey, long? newVersion)
@@ -228,15 +216,15 @@ public class MigrationRunner : IMigrationRunner
     }
 
     private async Task RunDataMigration(
-        CosmosDbMigration migration, 
+        DataMigrationConfig config, 
         MigrationDirection direction, 
         long migrationVersion,
         long newVersion)
     {
         _logger.LogInformation("Data migration with version {Version} started", migrationVersion);
         
-        var container = _db.GetContainer(migration.MigrationConfig.CollectionName);
-        var query = BuildDataMigrationQuery(migration, direction, migrationVersion);
+        var container = _db.GetContainer(config.CollectionName);
+        var query = BuildDataMigrationQuery(config, direction, migrationVersion);
 
         using var iterator = container.GetItemQueryStreamIterator(query, null, new QueryRequestOptions()
         {
@@ -255,16 +243,16 @@ public class MigrationRunner : IMigrationRunner
             
             foreach (var documentToken in documentTokens)
             {
-                var oldDoc = documentToken.ToObject(migration.MigrationConfig.FromType, _serializer);
-                var newDoc = migration.MigrationConfig.Invoke(oldDoc) as dynamic;
+                var oldDoc = documentToken.ToObject(config.FromType, _serializer);
+                var newDoc = config.Invoke(oldDoc) as dynamic;
                 
                 var partitionKey = ((JObject)documentToken)
-                    .GetValue(migration.MigrationConfig.PartitionKey, StringComparison.OrdinalIgnoreCase)
+                    .GetValue(config.PartitionKey, StringComparison.OrdinalIgnoreCase)
                     ?.Value<string>();
                 
                 newDoc.Version = newVersion;
 
-                var task = migration.MigrationConfig.ToType.IsSubclassOf(typeof(Migratable))
+                var task = config.ToType.IsSubclassOf(typeof(Migratable))
                         ? container.UpsertItemAsync<Migratable>(newDoc, new PartitionKey(partitionKey))
                         : container.UpsertItemAsync<MigratableRecord>(newDoc, new PartitionKey(partitionKey));
                 
@@ -272,7 +260,7 @@ public class MigrationRunner : IMigrationRunner
             }
             
             _logger.LogInformation("Running {NrOfTasks} migration ({Direction}) tasks, migrating {FromType} to {ToType}",
-                updateTasks.Count, direction, migration.MigrationConfig.FromType, migration.MigrationConfig.ToType);
+                updateTasks.Count, direction, config.FromType, config.ToType);
         
             var tasks = Task.WhenAll(updateTasks);
             var exceptions = new List<Exception>();
@@ -300,12 +288,12 @@ public class MigrationRunner : IMigrationRunner
             }
         }
 
-        await UpdateCurrentVersion(container, migration.MigrationConfig.PartitionKey, newVersion);
+        await UpdateCurrentVersion(container, config.PartitionKey, newVersion);
         
         _logger.LogInformation("Data migration with version {Version} finished", migrationVersion);
     }
 
-    private QueryDefinition BuildDataMigrationQuery(CosmosDbMigration migration, MigrationDirection direction, long newVersion)
+    private QueryDefinition BuildDataMigrationQuery(DataMigrationConfig config, MigrationDirection direction, long newVersion)
     {
         QueryDefinition query;
 
@@ -316,7 +304,7 @@ public class MigrationRunner : IMigrationRunner
             _ => throw new NotImplementedException(nameof(direction))
         };
         
-        if (migration.MigrationConfig.DocumentType.Equals(migration.MigrationConfig.EmptyDocumentType))
+        if (config.DocumentType.Equals(config.EmptyDocumentType))
         {
             query = new QueryDefinition("select * from c " +
                                         "where (not is_defined(c.documentType) or IS_NULL(c.documentType)) " +
@@ -328,7 +316,7 @@ public class MigrationRunner : IMigrationRunner
             query = new QueryDefinition("select * from c " +
                                         "where c.documentType = @documentType " +
                                         $"and (c.version {comparison} @version or not is_defined(c.version) or IS_NULL(c.version))")
-                .WithParameter("@documentType", migration.MigrationConfig.DocumentType)
+                .WithParameter("@documentType", config.DocumentType)
                 .WithParameter("@version", newVersion);
         }
 

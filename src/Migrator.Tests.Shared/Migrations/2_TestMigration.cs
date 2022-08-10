@@ -3,38 +3,36 @@ using CosmosDb.Migrator.Tests.Shared.Documents;
 
 namespace CosmosDb.Migrator.Tests.Shared.Migrations;
 
-[Migration(version: 20220419081800)]
-public class TestDataMigration : CosmosDbMigration
-{
-    public TestDataMigration() : base("test-data")
-    {
-    }
-    
+[Migration(version: 2)]
+public class TestMigration : CosmosDbMigration
+{   
     public override void Up()
     {
-        OnCollection()
-            .WithPartitionKey(path: "/id", key: "id")
+        MigrateDataInCollection(cfg => cfg
+            .WithCollectionName("test-data")
+            .WithPartitionKey(key: "id", path: "/id")
             .ForDocumentType("TestDataDocument")
             .Migrate<TestDataDocument, TestDataDocumentV2>(testData => new TestDataDocumentV2(
                 Id: testData.Id,
                 DocumentType: nameof(TestDataDocumentV2),
-                Version: 20220419081800,
+                Version: 2,
                 SomeString: testData.SomeString,
                 SomeBool: bool.Parse(testData.SomeBoolStr),
-                SomeDateTime: DateTime.ParseExact(testData.SomeDateTimeStr, "yyyy-MM-dd", CultureInfo.InvariantCulture)));
+                SomeDateTime: DateTime.ParseExact(testData.SomeDateTimeStr, "yyyy-MM-dd", CultureInfo.InvariantCulture))));
     }
 
     public override void Down()
     {
-        OnCollection()
-            .WithPartitionKey(path: "/id", key: "id")
+        MigrateDataInCollection(cfg => cfg
+            .WithCollectionName("test-data")
+            .WithPartitionKey(key: "id", path: "/id")
             .ForDocumentType("TestDataDocumentV2")
             .Migrate<TestDataDocumentV2, TestDataDocument>(testDataV2 => new TestDataDocument(
                 Id: testDataV2.Id,
                 DocumentType: nameof(TestDataDocument),
-                Version: 0,
+                Version: 1,
                 SomeString: testDataV2.SomeString,
                 SomeBoolStr: testDataV2.SomeBool.ToString(),
-                SomeDateTimeStr: testDataV2.SomeDateTime.ToString("yyyy-MM-dd")));
+                SomeDateTimeStr: testDataV2.SomeDateTime.ToString("yyyy-MM-dd"))));
     }
 }

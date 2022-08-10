@@ -45,7 +45,7 @@ public class MigrationRunnerTests
                 .Build());
 
         var dbMock = dbMockBuilder.Build();
-        var migrationTypes = new List<Type>{ typeof(TestDataMigration) };
+        var migrationTypes = new List<Type>{ typeof(TestMigration) };
         var migrator = new MigrationRunner(dbMock.Object, _logger.Object, migrationTypes);;
     
         await migrator.MigrateUp();

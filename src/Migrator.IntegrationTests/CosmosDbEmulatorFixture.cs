@@ -25,16 +25,6 @@ public class CosmosDbEmulatorFixture : IDisposable
             CosmosEndpoint,
             new CosmosClientOptions
             {
-                HttpClientFactory = () =>
-                {
-                    var httpMessageHandler = new HttpClientHandler
-                    {
-                        ServerCertificateCustomValidationCallback = (_, _, _, _) => true
-                    };
-
-                    return new HttpClient(httpMessageHandler);
-                },
-                ConnectionMode = ConnectionMode.Gateway,
                 AllowBulkExecution = true
             });
         

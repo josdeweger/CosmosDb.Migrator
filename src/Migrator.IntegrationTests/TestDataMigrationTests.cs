@@ -17,7 +17,7 @@ public class TestDataMigrationUpTests : IAsyncLifetime, IClassFixture<CosmosDbEm
     private readonly Mock<ILogger> _loggerMock = new(); 
     private Container _testDataContainer = default!;
     private readonly JsonSerializer _serializer = new();
-    private const long NewVersion = 20220419081800;
+    private const long NewVersion = 2;
     private List<TestDataDocument> TestDataList => CreateTestData();
 
     // Is run for every test

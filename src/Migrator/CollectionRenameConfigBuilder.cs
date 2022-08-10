@@ -5,7 +5,6 @@ public sealed class CollectionRenameConfigBuilder
     private string _collectionName = null!;
     private string _partitionKey = null!;
     private string _partitionKeyPath = null!;
-    private CollectionRenameConfig _config = null!;
     
     public CollectionRenameConfigBuilder WithCollectionName(string collectionName)
     {

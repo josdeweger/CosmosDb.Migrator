@@ -7,7 +7,7 @@ public class ChangeContainerNameTestToTest2 : CosmosDbMigration
     {
         RenameCollection(cfg => cfg
             .WithCollectionName("test")
-            .WithPartitionKey("/id", "id")
+            .WithPartitionKey("id", "/id")
             .RenameTo("test2"));
     }
 
@@ -15,7 +15,7 @@ public class ChangeContainerNameTestToTest2 : CosmosDbMigration
     {
         RenameCollection(cfg => cfg
             .WithCollectionName("test2")
-            .WithPartitionKey("/id", "id")
+            .WithPartitionKey("id", "/id")
             .RenameTo("test"));
     }
 }

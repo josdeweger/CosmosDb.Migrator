@@ -117,7 +117,7 @@ public class ContainerMockBuilder<T> where T : IMigratable
         return ContainerMock;
     }
     
-    private byte[] ObjectToByteArray<T>(DocumentsResponse<T> obj) where T : IMigratable
+    private byte[] ObjectToByteArray(DocumentsResponse<T> obj)
     {
         var objToString = JsonSerializer.Serialize(obj);
         

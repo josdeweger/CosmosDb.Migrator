@@ -4,7 +4,7 @@ namespace CosmosDb.Migrator;
 
 public sealed class DataMigrationConfig : MigrationConfig
 {
-    private readonly List<Func<Container, Task<bool>>> _conditions;
+    private readonly List<Delegate> _conditions;
     private readonly Delegate _migrationDelegate;
     public Type FromType { get; }
     public Type ToType { get; }
@@ -12,7 +12,7 @@ public sealed class DataMigrationConfig : MigrationConfig
     public string EmptyDocumentType => "None";
 
     public DataMigrationConfig(string collectionName, string partitionKey, string partitionKeyPath, string documentType,
-        Type fromType, Type toType, List<Func<Container, Task<bool>>> conditions, Delegate migrationDelegate)
+        Type fromType, Type toType, List<Delegate> conditions, Delegate migrationDelegate)
         : base(collectionName, partitionKey, partitionKeyPath)
     {
         DocumentType = documentType;
@@ -23,11 +23,12 @@ public sealed class DataMigrationConfig : MigrationConfig
         _migrationDelegate = migrationDelegate;
     }
 
-    public async Task<bool> AreConditionsMet(Container container)
+    public bool AreConditionsMet(Container container, object oldDoc)
     {
         foreach (var condition in _conditions)
         {
-            var result = await condition(container);
+            dynamic tmp = condition.DynamicInvoke(container, oldDoc);
+            var result = (bool)tmp.GetAwaiter().GetResult();
             
             if (!result)
             {

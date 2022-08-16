@@ -12,7 +12,6 @@ public record MigratableRecord(string Id, string DocumentType, long? Version = n
     
     [JsonProperty("documentType")]
     public string DocumentType { get; set; } = DocumentType;
-    
-    [JsonProperty("_ts")]
-    public long Timestamp { get; set; }
+
+    public long _ts { get; set; }
 }

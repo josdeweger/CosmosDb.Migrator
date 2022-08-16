@@ -56,8 +56,10 @@ public class ContainerMockBuilder<T> where T : IMigratable
         _fixture.Customize(new AutoMoqCustomization());
     }
 
-    public ContainerMockBuilder<T> WithVersionDocument(long version)
+    public ContainerMockBuilder<T> WithVersionDocument(long version, long? timestamp = null)
     {
+        long ts = timestamp ?? new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds();
+        
         var versionDoc = new VersionDocument("version-doc-id", nameof(VersionDocument), version);
         var itemResponseMock = new Mock<ItemResponse<VersionDocument>>();
         itemResponseMock.Setup(i => i.Resource).Returns(versionDoc);
@@ -75,12 +77,29 @@ public class ContainerMockBuilder<T> where T : IMigratable
 
     public ContainerMockBuilder<T> AddDocument(Func<Fixture, T> docBuilderFunc)
     {
-        _docs.Add(docBuilderFunc(_fixture));
+        var doc = docBuilderFunc(_fixture);
+
+        var itemResponse = new Mock<ItemResponse<T>>();
+        itemResponse.SetupGet(x => x.Resource).Returns(doc);
+        
+        ContainerMock
+            .Setup(x => x.ReadItemAsync<T>(doc.Id, new PartitionKey(doc.Id), It.IsAny<ItemRequestOptions>(),
+                It.IsAny<CancellationToken>())).ReturnsAsync(itemResponse.Object);
+        
+        //also add doc to collection so in the Build() method the FeedIterator can be setup to return the collection
+        _docs.Add(doc);
 
         return this;
     }
 
     public Mock<Container> Build()
+    {
+        SetupItemQueryStreamIterator();
+
+        return ContainerMock;
+    }
+
+    private void SetupItemQueryStreamIterator()
     {
         var response = new DocumentsResponse<T>(_docs);
         var docsAsByteArr = ObjectToByteArray(response);
@@ -93,7 +112,7 @@ public class ContainerMockBuilder<T> where T : IMigratable
         var feedIteratorMock = new Mock<FeedIterator>();
 
         var i = 0;
-        
+
         feedIteratorMock
             .SetupSequence(f => f.HasMoreResults)
             .Returns(() =>
@@ -106,17 +125,15 @@ public class ContainerMockBuilder<T> where T : IMigratable
                 i++;
                 return true;
             });
-        
+
         feedIteratorMock.Setup(f => f.ReadNextAsync(It.IsAny<CancellationToken>())).ReturnsAsync(responseMessage);
 
         ContainerMock.Setup(x =>
                 x.GetItemQueryStreamIterator(It.IsAny<QueryDefinition>(), It.IsAny<string>(),
                     It.IsAny<QueryRequestOptions>()))
             .Returns(feedIteratorMock.Object);
-
-        return ContainerMock;
     }
-    
+
     private byte[] ObjectToByteArray(DocumentsResponse<T> obj)
     {
         var objToString = JsonSerializer.Serialize(obj);

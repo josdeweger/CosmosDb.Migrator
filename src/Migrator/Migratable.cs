@@ -12,4 +12,6 @@ public class Migratable : IMigratable
     
     [JsonProperty("version")]
     public long? Version { get; set; }
+
+    public long _ts { get; }
 }

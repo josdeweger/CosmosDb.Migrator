@@ -86,11 +86,13 @@ public class TestDataMigrationUpTests : IAsyncLifetime, IClassFixture<CosmosDbEm
     
     private List<TestDataDocument> CreateTestData()
     {
+        var ts = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds();
+        
         return new List<TestDataDocument>
         {
-            new("1", nameof(TestDataDocument), 0, "This is some string", "False", "2022-01-15"),
-            new("2", nameof(TestDataDocument), 0, "This is another string", "True", "2022-02-16"),
-            new("3", nameof(TestDataDocument), 0, "Yet another string", "False", "2022-04-17")
+            new("1", nameof(TestDataDocument), 0, "This is some string", "False", "2022-01-15"){ _ts = ts },
+            new("2", nameof(TestDataDocument), 0, "This is another string", "True", "2022-02-16"){ _ts = ts },
+            new("3", nameof(TestDataDocument), 0, "Yet another string", "False", "2022-04-17"){ _ts = ts }
         };
     }
 }

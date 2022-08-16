@@ -68,4 +68,81 @@ public class MigrationRunnerTests
             It.IsAny<ItemRequestOptions>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
+    
+    [Fact]
+    public async Task GivenConditionsAreNotMet_WhenMigratingToNewVersion_DocumentIsNotMigrated()
+    {
+        var containerName = "test-data";
+        var idOne = Guid.NewGuid().ToString();
+        var idTwo = Guid.NewGuid().ToString();
+        
+        var dbMockBuilder = new DatabaseMockBuilder()
+            .WithContainer<TestDataDocument>(containerName, c => c
+                .WithVersionDocument(0)
+                .AddDocument(fixture => fixture
+                    .Build<TestDataDocument>()
+                    .With(x => x.Id, idOne)
+                    .Create())
+                .AddDocument(fixture => fixture
+                    .Build<TestDataDocument>()
+                    .With(x => x.Id, idTwo)
+                    .Create())
+                .Build());
+
+        var dbMock = dbMockBuilder.Build();
+        var migrationTypes = new List<Type>{ typeof(RemoveDuplicateRecordsWithDifferentIds) };
+        var migrator = new MigrationRunner(dbMock.Object, _logger.Object, migrationTypes);;
+    
+        await migrator.MigrateUp();
+
+        var containerMock = dbMockBuilder.GetContainerMock(containerName);
+
+        containerMock.Verify(x => x.UpsertItemAsync<IMigratable>(
+            It.IsAny<TestDataDocumentV2>(),
+            It.IsAny<PartitionKey>(),
+            It.IsAny<ItemRequestOptions>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+    
+    [Fact]
+    public async Task GivenConditionsAreMet_WhenMigratingToNewVersion_TheDocumentIsMigrated()
+    {
+        var containerName = "test-data";
+        var idWithFirstLetterLower = "test@mail.com";
+        var idWithFirstLetterUpper = "Test@mail.com";
+        
+        var dbMockBuilder = new DatabaseMockBuilder()
+            .WithContainer<TestDataDocument>(containerName, c => c
+                .WithVersionDocument(2)
+                .AddDocument(fixture => fixture
+                    .Build<TestDataDocument>()
+                    .With(x => x.Id, idWithFirstLetterLower)
+                    .With(x => x._ts, 1660654000)
+                    .Create())
+                .AddDocument(fixture => fixture
+                    .Build<TestDataDocument>()
+                    .With(x => x.Id, idWithFirstLetterUpper)
+                    .With(x => x._ts, 1660654001)
+                    .Create())
+                .Build());
+
+        var dbMock = dbMockBuilder.Build();
+        var migrationTypes = new List<Type>{ typeof(RemoveDuplicateRecordsWithDifferentIds) };
+        var migrator = new MigrationRunner(dbMock.Object, _logger.Object, migrationTypes);
+    
+        await migrator.MigrateUp();
+
+        var containerMock = dbMockBuilder.GetContainerMock(containerName);
+
+        containerMock.Verify(x => x.DeleteItemAsync<TestDataDocument>(idWithFirstLetterLower,
+            It.IsAny<PartitionKey>(),
+            It.IsAny<ItemRequestOptions>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+        
+        containerMock.Verify(x => x.UpsertItemAsync<IMigratable>(
+            It.Is<TestDataDocument>(y => y.Id.Equals(idWithFirstLetterLower)),
+            It.IsAny<PartitionKey>(),
+            It.IsAny<ItemRequestOptions>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
 }

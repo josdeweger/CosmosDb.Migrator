@@ -246,7 +246,7 @@ public class MigrationRunner : IMigrationRunner
                 var oldDoc = documentToken.ToObject(config.FromType, _serializer);
                 
                 //check if configured conditions are met
-                if (!await config.AreConditionsMet(container))
+                if (!config.AreConditionsMet(container, oldDoc))
                 {
                     continue;
                 }
@@ -334,6 +334,7 @@ public class MigrationRunner : IMigrationRunner
 
     private async Task UpdateCurrentVersion(Container container, string partitionKey, long? newVersion)
     {
+        var timestamp = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds();
         var versionDoc = new VersionDocument(VersionDocumentPartitionKey, nameof(VersionDocument), newVersion);
         var versionDocJObj = JObject.FromObject(versionDoc);
         versionDocJObj[partitionKey] = VersionDocumentPartitionKey;

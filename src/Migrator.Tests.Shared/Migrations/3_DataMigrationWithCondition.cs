@@ -5,7 +5,7 @@ using Microsoft.Azure.Cosmos;
 namespace CosmosDb.Migrator.Tests.Shared.Migrations;
 
 [Migration(version: 3)]
-public class DataMigrationUsingCollection : DataMigration
+public class RemoveDuplicateRecordsWithDifferentIds : DataMigration
 {
     public override void Up()
     {
@@ -15,7 +15,8 @@ public class DataMigrationUsingCollection : DataMigration
             .ForDocumentType("TestDataDocument")
             .AddCondition<TestDataDocument>(async (collection, testData) =>
             {
-                //if id starts with upper, see if there is a doc with a key starting with lower and vice versa
+                //if id starts with upper, see if there is a document with a key starting with lower
+                //or if id starts with lower, see if there is a document with a key starting with upper
                 var key = string.Concat(
                     Char.IsUpper(testData.Id[0])
                         ? testData.Id[0].ToString().ToLower()
@@ -26,18 +27,20 @@ public class DataMigrationUsingCollection : DataMigration
                     
                 if (response.Resource is null)
                 {
+                    //no duplicate, condition is not met
                     return false;
                 }
 
                 //if the current doc is older than the duplicate, remove this one
-                if (testData.Timestamp < response.Resource.Timestamp)
+                if (testData._ts < response.Resource._ts)
                 {
+                    //this is the older duplicate, remove it, condition is not met
                     await collection.DeleteItemAsync<TestDataDocument>(testData.Id, new PartitionKey(testData.Id));
                         
                     return false;
                 }
 
-                //else migrate this one
+                //this is the document we want to keep, condition is met, so modify the id to have only lower case
                 return true;
             })
             .Migrate<TestDataDocument, TestDataDocument>(testData =>

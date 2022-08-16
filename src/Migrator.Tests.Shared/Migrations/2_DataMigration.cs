@@ -4,7 +4,7 @@ using CosmosDb.Migrator.Tests.Shared.Documents;
 namespace CosmosDb.Migrator.Tests.Shared.Migrations;
 
 [Migration(version: 2)]
-public class TestMigration : CosmosDbMigration
+public class DataMigration : CosmosDbMigration
 {   
     public override void Up()
     {

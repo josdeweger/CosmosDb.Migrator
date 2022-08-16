@@ -244,6 +244,13 @@ public class MigrationRunner : IMigrationRunner
             foreach (var documentToken in documentTokens)
             {
                 var oldDoc = documentToken.ToObject(config.FromType, _serializer);
+                
+                //check if configured conditions are met
+                if (!await config.AreConditionsMet(container))
+                {
+                    continue;
+                }
+                
                 var newDoc = config.Invoke(oldDoc) as dynamic;
                 
                 var partitionKey = ((JObject)documentToken)

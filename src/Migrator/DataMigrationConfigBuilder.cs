@@ -1,8 +1,10 @@
+using Microsoft.Azure.Cosmos;
+
 namespace CosmosDb.Migrator;
 
 public sealed class DataMigrationConfigBuilder
 {
-    private readonly Dictionary<(Type from, Type to), Delegate> _factories = new();
+    private readonly List<Delegate> _conditions = new();
     private string _collectionName = null!;
     private string _partitionKey = null!;
     private string _partitionKeyPath = null!;
@@ -30,7 +32,14 @@ public sealed class DataMigrationConfigBuilder
 
         return this;
     }
+    
+    public DataMigrationConfigBuilder AddCondition<TOld>(Func<Container, TOld, Task<bool>> func) 
+        where TOld : IMigratable 
+    {   
+        _conditions.Add(func);
 
+        return this;
+    }
 
     public DataMigrationConfig Migrate<TOld, TNew>(Func<TOld, TNew> func) 
         where TOld : IMigratable 
@@ -45,8 +54,6 @@ public sealed class DataMigrationConfigBuilder
         {
             throw new ArgumentException(nameof(_partitionKey));
         }
-        
-        _factories[(typeof(TOld), typeof(TNew))] = func;
 
         return new DataMigrationConfig(
             _collectionName, 
@@ -55,6 +62,7 @@ public sealed class DataMigrationConfigBuilder
             _documentType, 
             typeof(TOld), 
             typeof(TNew), 
-            _factories);
+            _conditions,
+            func);
     }
 }

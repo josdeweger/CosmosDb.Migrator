@@ -1,33 +1,50 @@
-﻿namespace CosmosDb.Migrator;
+﻿using Microsoft.Azure.Cosmos;
+
+namespace CosmosDb.Migrator;
 
 public sealed class DataMigrationConfig : MigrationConfig
 {
-    private readonly Dictionary<(Type from, Type to), Delegate> _factories = new();
-    public Type FromType { get; } = default!;
-    public Type ToType { get; } = default!;
-    public string DocumentType { get; } = default!;
+    private readonly List<Func<Container, Task<bool>>> _conditions;
+    private readonly Delegate _migrationDelegate;
+    public Type FromType { get; }
+    public Type ToType { get; }
+    public string DocumentType { get; }
     public string EmptyDocumentType => "None";
 
-    public DataMigrationConfig(string collectionName,
-        string partitionKey, string partitionKeyPath,
-        string documentType, Type fromType, Type toType,
-        Dictionary<(Type from, Type to), Delegate> factories) 
+    public DataMigrationConfig(string collectionName, string partitionKey, string partitionKeyPath, string documentType,
+        Type fromType, Type toType, List<Func<Container, Task<bool>>> conditions, Delegate migrationDelegate)
         : base(collectionName, partitionKey, partitionKeyPath)
     {
         DocumentType = documentType;
         FromType = fromType;
         ToType = toType;
 
-        _factories = factories;
+        _conditions = conditions;
+        _migrationDelegate = migrationDelegate;
     }
 
-    public object Invoke(object input)
+    public async Task<bool> AreConditionsMet(Container container)
     {
-        if (_factories.TryGetValue((FromType, ToType), out var fn))
+        foreach (var condition in _conditions)
         {
-            return fn.DynamicInvoke(input);
+            var result = await condition(container);
+            
+            if (!result)
+            {
+                return false;
+            }
         }
 
-        throw new Exception($"Could not find registered delegate for type from: {FromType} and type to: {ToType}");
+        return true;
+    }
+    
+    public object Invoke(object input)
+    {
+        if (_migrationDelegate is null)
+        {
+            throw new Exception($"Delegate is not set for type from: {FromType} and type to: {ToType}");
+        }
+        
+        return _migrationDelegate.DynamicInvoke(input);
     }
 }

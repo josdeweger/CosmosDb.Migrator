@@ -65,4 +65,29 @@ public sealed class DataMigrationConfigBuilder
             _conditions,
             func);
     }
+    
+    public DataMigrationConfig Migrate<TOld, TNew>(Func<Container, TOld, Task<TNew>> func) 
+        where TOld : IMigratable 
+        where TNew : IMigratable
+    {   
+        if (string.IsNullOrEmpty(_partitionKeyPath))
+        {
+            throw new ArgumentException(nameof(_partitionKeyPath));
+        }
+        
+        if (string.IsNullOrEmpty(_partitionKey))
+        {
+            throw new ArgumentException(nameof(_partitionKey));
+        }
+
+        return new DataMigrationConfig(
+            _collectionName, 
+            _partitionKey,
+            _partitionKeyPath,
+            _documentType, 
+            typeof(TOld), 
+            typeof(TNew), 
+            _conditions,
+            func);
+    }
 }

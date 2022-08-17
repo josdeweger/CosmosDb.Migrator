@@ -251,7 +251,7 @@ public class MigrationRunner : IMigrationRunner
                     continue;
                 }
                 
-                var newDoc = config.Invoke(oldDoc) as dynamic;
+                dynamic newDoc = config.Invoke(container, oldDoc);
                 
                 var partitionKey = newDoc.GetType().GetProperty(config.PartitionKey,
                     BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance).GetValue(newDoc, null);

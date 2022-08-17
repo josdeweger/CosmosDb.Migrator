@@ -140,7 +140,7 @@ public class MigrationRunnerTests
             It.IsAny<CancellationToken>()), Times.Once);
         
         containerMock.Verify(x => x.UpsertItemAsync<IMigratable>(
-            It.Is<TestDataDocument>(y => y.Id.Equals(idWithFirstLetterLower)),
+            It.Is<TestDataDocument>(y => y.Id.Equals(idWithFirstLetterLower) && y.Version.Equals(3L)),
             It.IsAny<PartitionKey>(),
             It.IsAny<ItemRequestOptions>(),
             It.IsAny<CancellationToken>()), Times.Once);

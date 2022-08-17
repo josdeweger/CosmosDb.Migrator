@@ -253,9 +253,8 @@ public class MigrationRunner : IMigrationRunner
                 
                 var newDoc = config.Invoke(oldDoc) as dynamic;
                 
-                var partitionKey = ((JObject)documentToken)
-                    .GetValue(config.PartitionKey, StringComparison.OrdinalIgnoreCase)
-                    ?.Value<string>();
+                var partitionKey = newDoc.GetType().GetProperty(config.PartitionKey,
+                    BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance).GetValue(newDoc, null);
                 
                 newDoc.Version = newVersion;
 

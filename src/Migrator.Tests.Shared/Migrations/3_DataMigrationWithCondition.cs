@@ -23,16 +23,26 @@ public class RemoveDuplicateRecordsWithDifferentIds : DataMigration
                         : testData.Id[0].ToString().ToUpper(), testData.Id.AsSpan(1));
                 
                 //get the 'duplicate' doc
-                var response = await collection.ReadItemAsync<TestDataDocument>(key, new PartitionKey(key));
-                    
-                if (response.Resource is null)
+                ItemResponse<TestDataDocument> response;
+                
+                try
                 {
-                    //no duplicate, condition is not met
-                    return false;
+                    response = await collection.ReadItemAsync<TestDataDocument>(key, new PartitionKey(key));
+                    
+                    if (response?.Resource is null)
+                    {
+                        //no duplicate, condition is met
+                        return true;
+                    }
+                }
+                catch (CosmosException e)
+                {
+                    //no duplicate, condition is met
+                    return true;
                 }
 
                 //if the current doc is older than the duplicate, remove this one
-                if (testData._ts < response.Resource._ts)
+                if (testData._ts <= response.Resource._ts)
                 {
                     //this is the older duplicate, remove it, condition is not met
                     await collection.DeleteItemAsync<TestDataDocument>(testData.Id, new PartitionKey(testData.Id));

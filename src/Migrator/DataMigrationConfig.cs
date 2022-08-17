@@ -1,4 +1,5 @@
-﻿using Microsoft.Azure.Cosmos;
+﻿using System.Runtime.CompilerServices;
+using Microsoft.Azure.Cosmos;
 
 namespace CosmosDb.Migrator;
 
@@ -39,11 +40,17 @@ public sealed class DataMigrationConfig : MigrationConfig
         return true;
     }
     
-    public object Invoke(object input)
+    public object Invoke(Container container, object input)
     {
         if (_migrationDelegate is null)
         {
             throw new Exception($"Delegate is not set for type from: {FromType} and type to: {ToType}");
+        }
+
+        if (_migrationDelegate.Method.IsDefined(typeof(AsyncStateMachineAttribute), false))
+        {
+            dynamic result = _migrationDelegate.DynamicInvoke(container, input);
+            return result.GetAwaiter().GetResult();
         }
         
         return _migrationDelegate.DynamicInvoke(input);

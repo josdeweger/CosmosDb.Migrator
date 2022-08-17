@@ -134,7 +134,7 @@ public class MigrationRunnerTests
 
         var containerMock = dbMockBuilder.GetContainerMock(containerName);
 
-        containerMock.Verify(x => x.DeleteItemAsync<TestDataDocument>(idWithFirstLetterLower,
+        containerMock.Verify(x => x.DeleteItemAsync<TestDataDocument>(idWithFirstLetterUpper,
             It.IsAny<PartitionKey>(),
             It.IsAny<ItemRequestOptions>(),
             It.IsAny<CancellationToken>()), Times.Once);

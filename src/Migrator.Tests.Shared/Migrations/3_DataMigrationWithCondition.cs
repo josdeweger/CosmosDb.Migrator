@@ -41,20 +41,24 @@ public class RemoveDuplicateRecordsWithDifferentIds : DataMigration
                     return true;
                 }
 
-                //if the current doc is older than the duplicate, remove this one
+                //if the current doc is older than the duplicate
                 if (testData._ts <= response.Resource._ts)
                 {
-                    //this is the older duplicate, remove it, condition is not met
-                    await collection.DeleteItemAsync<TestDataDocument>(testData.Id, new PartitionKey(testData.Id));
-                        
                     return false;
                 }
 
                 //this is the document we want to keep, condition is met, so modify the id to have only lower case
                 return true;
             })
-            .Migrate<TestDataDocument, TestDataDocument>(testData =>
+            .Migrate<TestDataDocument, TestDataDocument>(async (collection, testData) =>
             {
+                //if the document id starts with a capital, remove it
+                if (Char.IsUpper(testData.Id[0]))
+                {
+                    await collection.DeleteItemAsync<TestDataDocument>(testData.Id, new PartitionKey(testData.Id));
+                }
+                
+                //return the new document with lowercase id 
                 testData.Id = testData.Id.ToLower();
                 
                 return testData;

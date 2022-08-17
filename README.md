@@ -24,39 +24,37 @@ This way they automatically get an `id`, `documentType` and `version` field, whi
 An example:
 
 ```c#
-[Migration(version: 20220419081800)]
-public class TestDataMigration : CosmosDbMigration
-{
-    public TestDataMigration() : base(collection: "test-data")
-    {
-    }
-
+[Migration(version: 20220414081800)]
+public class DataMigration : CosmosDbMigration
+{   
     public override void Up()
     {
-        OnCollection()
-          .WithPartitionKey(path: "/id", key: "id")
-          .ForDocumentType("TestDataDocument")
-          .Migrate<TestDataDocument, TestDataDocumentV2>(testData => new TestDataDocumentV2(
-              Id: testData.Id,
-              DocumentType: nameof(TestDataDocumentV2),
-              Version: 20220419081800,
-              SomeString: testData.SomeString,
-              SomeBool: bool.Parse(testData.SomeBoolStr),
-              SomeDateTime: DateTime.ParseExact(testData.SomeDateTimeStr, "yyyy-MM-dd", CultureInfo.InvariantCulture)));
+        MigrateDataInCollection(cfg => cfg
+            .WithCollectionName("test-data")
+            .WithPartitionKey(key: "id", path: "/id")
+            .ForDocumentType("TestDataDocument")
+            .Migrate<TestDataDocument, TestDataDocumentV2>(testData => new TestDataDocumentV2(
+                Id: testData.Id,
+                DocumentType: nameof(TestDataDocumentV2),
+                Version: 2,
+                SomeString: testData.SomeString,
+                SomeBool: bool.Parse(testData.SomeBoolStr),
+                SomeDateTime: DateTime.ParseExact(testData.SomeDateTimeStr, "yyyy-MM-dd", CultureInfo.InvariantCulture))));
     }
 
     public override void Down()
     {
-        OnCollection()
-          .WithPartitionKey(path: "/id", key: "id")
-          .ForDocumentType("TestDataDocumentV2")
-          .Migrate<TestDataDocumentV2, TestDataDocument>(testDataV2 => new TestDataDocument(
-              Id: testDataV2.Id.Substring(0, testDataV2.Id.LastIndexOf('-')),
-              DocumentType: nameof(TestDataDocument),
-              Version: null,
-              SomeString: testDataV2.SomeString,
-              SomeBoolStr: testDataV2.SomeBool.ToString(),
-              SomeDateTimeStr: testDataV2.SomeDateTime.ToString("yyyy-MM-dd")));
+        MigrateDataInCollection(cfg => cfg
+            .WithCollectionName("test-data")
+            .WithPartitionKey(key: "id", path: "/id")
+            .ForDocumentType("TestDataDocumentV2")
+            .Migrate<TestDataDocumentV2, TestDataDocument>(testDataV2 => new TestDataDocument(
+                Id: testDataV2.Id,
+                DocumentType: nameof(TestDataDocument),
+                Version: 1,
+                SomeString: testDataV2.SomeString,
+                SomeBoolStr: testDataV2.SomeBool.ToString(),
+                SomeDateTimeStr: testDataV2.SomeDateTime.ToString("yyyy-MM-dd"))));
     }
 }
 ```
@@ -74,24 +72,20 @@ An example:
 [Migration(version: 20220415142200)]
 public class ChangeContainerNameTestToTest2 : CosmosDbMigration
 {
-    public ChangeContainerNameTestToTest2() : base("test")
-    {
-    }
-    
     public override void Up()
     {
-        OnCollection()
-          .WithPartitionKey("/id", "id")
-          .RenameFrom("test")
-          .RenameTo("test2");
+        RenameCollection(cfg => cfg
+            .WithCollectionName("test")
+            .WithPartitionKey("id", "/id")
+            .RenameTo("test2"));
     }
 
     public override void Down()
     {
-        OnCollection()
-          .WithPartitionKey("/id", "id")
-          .RenameFrom("test2")
-          .RenameTo("test");
+        RenameCollection(cfg => cfg
+            .WithCollectionName("test2")
+            .WithPartitionKey("id", "/id")
+            .RenameTo("test"));
     }
 }
 ```
@@ -168,13 +162,13 @@ with a list of migrations to run
       will create batches of tasks and run them using `Task.WhenAll`. When Bulk Execution is enabled on the CosmosDb Client 
       (which it should!), the CosmosDb Client will be smart enough to handle these tasks as performant as possible 
     - the new version will be stored with the same partition key, overwriting the existing document
-    - when all migrations are finished a `versionDocument` will be created inside the same collection, storing the `documentType` 
+    - when all migrations are finished a `versionDocument` will be created/updated inside the same collection, storing the `documentType` 
       and the current `version`
 - When performing a `Down` migration, a version must be added as a parameter to the runner, so it knows to
   what version to downgrade to. Then it will:
     - filter out all the migration definitions that are bigger than the version specified
     - execute the actions defined in the migration definitions `down` method in descending order
-    - when all migrations are finished a `versionDocument` will be created inside the same collection, storing the `documentType`
+    - when all migrations are finished a `versionDocument` will be created/updated inside the same collection, storing the `documentType`
       and the current `version`
 
 ### Renaming a collection

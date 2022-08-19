@@ -90,6 +90,37 @@ public class ChangeContainerNameTestToTest2 : CosmosDbMigration
 }
 ```
 
+## Conditions
+As of v2.x.x-beta, conditions have also been added. This allows you to only migrate documents that meet your conditions. In the conditions the collection can even be accessed, like so:
+
+```c#
+public override void Up()
+{
+    MigrateDataInCollection(cfg => cfg
+       .WithCollectionName("test-data")
+       .WithPartitionKey(key: "id", path: "/id")
+       .ForDocumentType("TestDataDocument")
+       .AddCondition<TestDataDocument>(async (collection, testData) =>
+       {
+           var otherDoc = await collection.ReadItemAsync<TestDataDocument>("some-id", new PartitionKey("some-id"));
+           
+           if(otherDoc.myBool)
+           {
+               return true;
+           }
+
+           return false;
+       }
+       .Migrate<TestDataDocument, TestDataDocumentV2>(testData => new TestDataDocumentV2(
+            Id: testData.Id,
+            DocumentType: nameof(TestDataDocumentV2),
+            Version: 2,
+            SomeString: testData.SomeString,
+            SomeBool: bool.Parse(testData.SomeBoolStr),
+            SomeDateTime: DateTime.ParseExact(testData.SomeDateTimeStr, "yyyy-MM-dd", CultureInfo.InvariantCulture))));
+    }
+```
+
 ## Running migrations
 To actually run the migrations the `MigrationRunner` can be used. It can be used inside any process that can be triggered, for instance
 an Azure (Durable) Function, a Console Application etc. Make sure you don't run the `MigrationRunner` inside an application

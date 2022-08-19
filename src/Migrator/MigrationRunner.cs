@@ -78,7 +78,12 @@ public class MigrationRunner : IMigrationRunner
         {
             //execute the Up method to set all the properties on the MigrationConfig property
             migrationInfo.Migration.Up();
-        
+
+            if (migrationInfo.Migration.MigrationConfig is null)
+            {
+                continue;
+            }
+            
             //get the current version from the existing collection (if any)
             var currentVersion = await _currentVersionProvider.Get(
                 collectionName: migrationInfo.Migration.MigrationConfig.CollectionName,
@@ -118,6 +123,11 @@ public class MigrationRunner : IMigrationRunner
                 //execute the Down method to set all the properties on the MigrationConfig property
                 migrationInfo.Migration.Down();
 
+                if (migrationInfo.Migration.MigrationConfig is null)
+                {
+                    continue;
+                }
+                
                 _logger.LogInformation("Start Down migration (version: {Version}) on collection {CollectionName}",
                     migrationInfo.Version, migrationInfo.Migration.MigrationConfig.CollectionName);
 
@@ -243,7 +253,7 @@ public class MigrationRunner : IMigrationRunner
             
             foreach (var documentToken in documentTokens)
             {
-                var oldDoc = documentToken.ToObject(config.FromType, _serializer);
+                var oldDoc = documentToken.ToObject(config.FromType, _serializer) as IMigratable;
                 
                 //check if configured conditions are met
                 if (!config.AreConditionsMet(container, oldDoc))
@@ -251,7 +261,7 @@ public class MigrationRunner : IMigrationRunner
                     continue;
                 }
                 
-                dynamic newDoc = config.Invoke(container, oldDoc);
+                dynamic newDoc = await config.Invoke(container, oldDoc);
                 
                 var partitionKey = newDoc.GetType().GetProperty(config.PartitionKey,
                     BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance).GetValue(newDoc, null);
@@ -310,7 +320,7 @@ public class MigrationRunner : IMigrationRunner
             _ => throw new NotImplementedException(nameof(direction))
         };
         
-        if (config.DocumentType.Equals(config.EmptyDocumentType))
+        if (config.DocumentType.Equals(DataMigrationConfig.EmptyDocumentType))
         {
             query = new QueryDefinition("select * from c " +
                                         "where (not is_defined(c.documentType) or IS_NULL(c.documentType)) " +

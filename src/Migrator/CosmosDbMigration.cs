@@ -2,7 +2,7 @@ namespace CosmosDb.Migrator;
 
 public abstract class CosmosDbMigration
 {
-    public MigrationConfig MigrationConfig { get; private set; } = null!;
+    public MigrationConfig? MigrationConfig { get; private set; }
 
     public abstract void Up();
     public abstract void Down();

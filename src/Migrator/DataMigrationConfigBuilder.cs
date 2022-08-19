@@ -25,10 +25,16 @@ public sealed class DataMigrationConfigBuilder
         return this;
     }
 
-
     public DataMigrationConfigBuilder ForDocumentType(string documentType)
     {
         _documentType = documentType;
+
+        return this;
+    }
+
+    public DataMigrationConfigBuilder WithoutDocumentType()
+    {
+        _documentType = DataMigrationConfig.EmptyDocumentType;
 
         return this;
     }
@@ -40,7 +46,7 @@ public sealed class DataMigrationConfigBuilder
 
         return this;
     }
-
+    
     public DataMigrationConfig Migrate<TOld, TNew>(Func<TOld, TNew> func) 
         where TOld : IMigratable 
         where TNew : IMigratable
@@ -67,7 +73,7 @@ public sealed class DataMigrationConfigBuilder
     }
     
     public DataMigrationConfig Migrate<TOld, TNew>(Func<Container, TOld, Task<TNew>> func) 
-        where TOld : IMigratable 
+        where TOld : IMigratable
         where TNew : IMigratable
     {   
         if (string.IsNullOrEmpty(_partitionKeyPath))

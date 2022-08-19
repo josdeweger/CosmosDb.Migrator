@@ -10,10 +10,17 @@ public sealed class DataMigrationConfig : MigrationConfig
     public Type FromType { get; }
     public Type ToType { get; }
     public string DocumentType { get; }
-    public string EmptyDocumentType => "None";
+    public static string EmptyDocumentType => "None";
 
-    public DataMigrationConfig(string collectionName, string partitionKey, string partitionKeyPath, string documentType,
-        Type fromType, Type toType, List<Delegate> conditions, Delegate migrationDelegate)
+    public DataMigrationConfig(
+        string collectionName, 
+        string partitionKey, 
+        string partitionKeyPath, 
+        string documentType,
+        Type fromType, 
+        Type toType, 
+        List<Delegate> conditions, 
+        Delegate migrationDelegate)
         : base(collectionName, partitionKey, partitionKeyPath)
     {
         DocumentType = documentType;
@@ -40,19 +47,25 @@ public sealed class DataMigrationConfig : MigrationConfig
         return true;
     }
     
-    public object Invoke(Container container, object input)
+    public async Task<dynamic> Invoke(Container container, IMigratable input)
     {
         if (_migrationDelegate is null)
         {
-            throw new Exception($"Delegate is not set for type from: {FromType} and type to: {ToType}");
+            throw new Exception($"No migration delegate is set for type from: {FromType} and type to: {ToType}");
         }
 
-        if (_migrationDelegate.Method.IsDefined(typeof(AsyncStateMachineAttribute), false))
-        {
-            dynamic result = _migrationDelegate.DynamicInvoke(container, input);
-            return result.GetAwaiter().GetResult();
-        }
+        return await InvokeDelegate<dynamic>(_migrationDelegate, new object[]{ container, input });
+    }
+    
+    public async Task<TResult> InvokeDelegate<TResult>(Delegate action, object[] actionArgs = null)
+    {
+        var result = action.DynamicInvoke(actionArgs);
         
-        return _migrationDelegate.DynamicInvoke(input);
+        if (result is Task<TResult> task)
+        {
+            return await task;
+        }
+
+        return (TResult)result;
     }
 }

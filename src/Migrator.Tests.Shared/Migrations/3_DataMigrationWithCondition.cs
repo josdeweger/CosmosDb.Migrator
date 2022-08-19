@@ -5,7 +5,7 @@ using Microsoft.Azure.Cosmos;
 namespace CosmosDb.Migrator.Tests.Shared.Migrations;
 
 [Migration(version: 3)]
-public class RemoveDuplicateRecordsWithDifferentIds : DataMigration
+public class RemoveDuplicateRecordsWithDifferentIds : CosmosDbMigration
 {
     public override void Up()
     {
@@ -35,7 +35,7 @@ public class RemoveDuplicateRecordsWithDifferentIds : DataMigration
                         return true;
                     }
                 }
-                catch (CosmosException e)
+                catch (CosmosException)
                 {
                     //no duplicate, condition is met
                     return true;
@@ -63,5 +63,10 @@ public class RemoveDuplicateRecordsWithDifferentIds : DataMigration
                 
                 return testData;
             }));
+    }
+
+    public override void Down()
+    {
+        
     }
 }

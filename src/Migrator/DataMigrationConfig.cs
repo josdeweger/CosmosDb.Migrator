@@ -31,41 +31,34 @@ public sealed class DataMigrationConfig : MigrationConfig
         _migrationDelegate = migrationDelegate;
     }
 
-    public bool AreConditionsMet(Container container, object oldDoc)
+    public async Task<bool> AreConditionsMet(Container container, object oldDoc)
     {
         foreach (var condition in _conditions)
         {
-            dynamic tmp = condition.DynamicInvoke(container, oldDoc);
-            var result = (bool)tmp.GetAwaiter().GetResult();
-            
-            if (!result)
-            {
-                return false;
-            }
+            var result = condition.DynamicInvoke(container, oldDoc);
+            await (Task) result;
+
+            return (bool?)result.GetType().GetProperty("Result")?.GetValue(result) ?? false;
         }
 
         return true;
     }
     
-    public async Task<dynamic> Invoke(Container container, IMigratable input)
+    public async Task<dynamic?> Invoke(Container container, IMigratable input)
     {
         if (_migrationDelegate is null)
         {
             throw new Exception($"No migration delegate is set for type from: {FromType} and type to: {ToType}");
         }
 
-        return await InvokeDelegate<dynamic>(_migrationDelegate, new object[]{ container, input });
-    }
-    
-    public async Task<TResult> InvokeDelegate<TResult>(Delegate action, object[] actionArgs = null)
-    {
-        var result = action.DynamicInvoke(actionArgs);
-        
-        if (result is Task<TResult> task)
+        if (_migrationDelegate.Method.IsDefined(typeof(AsyncStateMachineAttribute), false))
         {
-            return await task;
+            var result = _migrationDelegate.DynamicInvoke(container, input);
+            await (Task) result;
+
+            return result.GetType().GetProperty("Result")?.GetValue(result);
         }
 
-        return (TResult)result;
+        return _migrationDelegate.DynamicInvoke(input);
     }
 }

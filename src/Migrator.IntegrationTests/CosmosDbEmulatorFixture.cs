@@ -25,7 +25,7 @@ public class CosmosDbEmulatorFixture : IDisposable
             new CosmosClientOptions
             {
                 AllowBulkExecution = true,
-                ConnectionMode = ConnectionMode.Gateway
+                ConnectionMode = ConnectionMode.Direct
             });
         
         TestDatabase = CreateEmptyDatabase().GetAwaiter().GetResult();

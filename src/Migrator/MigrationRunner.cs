@@ -255,13 +255,25 @@ public class MigrationRunner : IMigrationRunner
             {
                 var oldDoc = documentToken.ToObject(config.FromType, _serializer) as IMigratable;
                 
+                if (oldDoc is null)
+                {
+                    _logger.LogError("The document could not be deserialized to IMigratable");
+                    continue;
+                }
+                
                 //check if configured conditions are met
-                if (!config.AreConditionsMet(container, oldDoc))
+                if (!await config.AreConditionsMet(container, oldDoc))
                 {
                     continue;
                 }
                 
-                dynamic newDoc = await config.Invoke(container, oldDoc);
+                dynamic? newDoc = await config.Invoke(container, oldDoc);
+
+                if (newDoc is null)
+                {
+                    _logger.LogError("Migrating {FromType} to {ToType} returned null. Skipping document", config.FromType, config.ToType);
+                    continue;
+                }
                 
                 var partitionKey = newDoc.GetType().GetProperty(config.PartitionKey,
                     BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance).GetValue(newDoc, null);

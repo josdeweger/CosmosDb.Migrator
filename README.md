@@ -181,5 +181,3 @@ Unfortunately CosmosDb does not offer a collection rename method. So when renami
 ## To do
 - Support multiple version documents per collection (meaning storing an array of versions in the 
 `versionDocument`, one per `documentType`)
-- Splitting the `MigrationConfig` into separate configs for different types of migrations (data migrations, renaming collections 
-at the moment)

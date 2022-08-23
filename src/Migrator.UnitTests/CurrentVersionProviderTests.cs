@@ -61,6 +61,8 @@ public class CurrentVersionProviderTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(containerResponseMock.Object);
         
+        _dbMock.Setup(m => m.GetContainer(It.IsAny<string>())).Returns(containerResponseMock.Object);
+        
         var currentVersionProvider = CreateSut(memoryCacheMock);
         var result = await currentVersionProvider.Get(CollectionName, PartitionKeyPath);
 
@@ -91,6 +93,8 @@ public class CurrentVersionProviderTests
                 It.IsAny<RequestOptions>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(containerResponseMock.Object);
+        
+        _dbMock.Setup(m => m.GetContainer(It.IsAny<string>())).Returns(containerResponseMock.Object);
         
         var currentVersionProvider = CreateSut(memoryCacheMock);
         var result = await currentVersionProvider.Get(CollectionName, PartitionKeyPath);

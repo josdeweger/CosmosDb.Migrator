@@ -78,6 +78,19 @@ public class CosmosDbEmulatorFixture : IDisposable
         }
     }
     
+    public async Task SafelyDeleteContainer(string containerName)
+    {
+        try
+        {
+            var existingContainer = TestDatabase.GetContainer(containerName);
+            await existingContainer.DeleteContainerAsync();
+        }
+        catch (CosmosException)
+        {
+            //ignore, container does not exist, which is what we want
+        }
+    }
+    
     private void ReleaseUnmanagedResources()
     {
         _client.Dispose();

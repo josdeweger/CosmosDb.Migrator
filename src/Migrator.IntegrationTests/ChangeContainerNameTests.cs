@@ -15,6 +15,8 @@ public class ChangeContainerNameUpTests : IAsyncLifetime, IClassFixture<CosmosDb
     private readonly CosmosDbEmulatorFixture _emulatorFixture;
     private readonly Mock<ILogger> _loggerMock = new();
     private readonly JsonSerializer _serializer = new();
+    private const string OldContainer = "test";
+    private const string NewContainer = "test2";
 
     // Is run for every test
     public ChangeContainerNameUpTests(CosmosDbEmulatorFixture emulatorFixture)
@@ -25,7 +27,7 @@ public class ChangeContainerNameUpTests : IAsyncLifetime, IClassFixture<CosmosDb
     // Async helper init method, is run for every test
     public async Task InitializeAsync()
     {
-        await _emulatorFixture.CreateEmptyContainer("test", "/id");
+        await _emulatorFixture.CreateEmptyContainer(OldContainer, "/id");
     }
     
     [Fact]
@@ -36,7 +38,7 @@ public class ChangeContainerNameUpTests : IAsyncLifetime, IClassFixture<CosmosDb
 
         await runner.MigrateUp();
 
-        var containerReference = _emulatorFixture.TestDatabase.GetContainer("test2");
+        var containerReference = _emulatorFixture.TestDatabase.GetContainer(NewContainer);
         var result = async () => await containerReference.ReadContainerAsync();
         
         await result.Should().NotThrowAsync<CosmosException>();
@@ -51,7 +53,7 @@ public class ChangeContainerNameUpTests : IAsyncLifetime, IClassFixture<CosmosDb
         await runner.MigrateUp();
         await runner.MigrateDown(0);
 
-        var containerReference = _emulatorFixture.TestDatabase.GetContainer("test");
+        var containerReference = _emulatorFixture.TestDatabase.GetContainer(OldContainer);
         var result = async () => await containerReference.ReadContainerAsync();
         
         await result.Should().NotThrowAsync<CosmosException>();
@@ -61,7 +63,7 @@ public class ChangeContainerNameUpTests : IAsyncLifetime, IClassFixture<CosmosDb
     public async Task GivenCollection_WhenRenamingTheCollectionUp_TheNewCollectionContainsCopiedDocuments()
     {
         var generatedDocs = GenerateTestDataDocuments(10);
-        var oldContainerReference = _emulatorFixture.TestDatabase.GetContainer("test");
+        var oldContainerReference = _emulatorFixture.TestDatabase.GetContainer(OldContainer);
         await _emulatorFixture.SeedContainer(oldContainerReference, generatedDocs);
         
         var migrations = new List<Type> {typeof(ChangeContainerNameTestToTest2)};
@@ -69,7 +71,7 @@ public class ChangeContainerNameUpTests : IAsyncLifetime, IClassFixture<CosmosDb
 
         await runner.MigrateUp();
 
-        var newContainerReference = _emulatorFixture.TestDatabase.GetContainer("test2");
+        var newContainerReference = _emulatorFixture.TestDatabase.GetContainer(NewContainer);
         
         var query = new QueryDefinition("select * from c where c.documentType = @documentType")
             .WithParameter("@documentType", "TestDataDocument");
@@ -110,8 +112,9 @@ public class ChangeContainerNameUpTests : IAsyncLifetime, IClassFixture<CosmosDb
         return list;
     }
 
-    public Task DisposeAsync()
+    public async Task DisposeAsync()
     {
-        return Task.CompletedTask;
+        await _emulatorFixture.SafelyDeleteContainer(OldContainer);
+        await _emulatorFixture.SafelyDeleteContainer(NewContainer);
     }
 }

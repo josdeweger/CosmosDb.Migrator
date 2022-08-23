@@ -89,7 +89,7 @@ public class MigrationRunner : IMigrationRunner
                 collectionName: migrationInfo.Migration.MigrationConfig.CollectionName,
                 partitionKeyPath: migrationInfo.Migration.MigrationConfig.PartitionKeyPath);
 
-            if (migrationInfo.Version <= currentVersion)
+            if (currentVersion is null || migrationInfo.Version <= currentVersion)
             {
                 continue;
             }
@@ -172,6 +172,16 @@ public class MigrationRunner : IMigrationRunner
         _logger.LogInformation("Renaming collection {FromCollection} to {ToCollection} started",
             config.CollectionName, config.ToCollectionName);
         
+        //check if new collection already exists. If so, skip this rename
+        if (await _db.ContainerExists(config.ToCollectionName))
+        {
+            _logger.LogWarning(
+                "Skipped renaming {FromCollection} to {ToCollection}, because {ToCollection} already exists",
+                config.CollectionName, config.ToCollectionName, config.ToCollectionName);
+            
+            return;
+        }
+        
         var oldContainer = _db.GetContainer(config.CollectionName);
         var response = await oldContainer.ReadContainerAsync();
         var throughput = await oldContainer.ReadThroughputAsync();
@@ -181,7 +191,7 @@ public class MigrationRunner : IMigrationRunner
         
         var newContainerResponse = await _db.CreateContainerIfNotExistsAsync(newContainerProps);
         var newContainer = newContainerResponse.Container;
-        await newContainer.ReplaceThroughputAsync(throughput ?? 400);
+        await newContainer.ReplaceThroughputAsync(throughput ?? 500);
         
         await CopyAllDataBetweenCollections(oldContainer, newContainer, config.PartitionKey, newVersion);
         await oldContainer.DeleteContainerAsync();

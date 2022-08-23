@@ -28,10 +28,8 @@ public class CurrentVersionProvider : IProvideCurrentVersion
     /// <param name="partitionKeyPath"></param>
     /// <param name="cacheDurationInSecs"></param>
     /// <returns></returns>
-    public async Task<long> Get(string collectionName, string partitionKeyPath, int cacheDurationInSecs = 30)
+    public async Task<long?> Get(string collectionName, string partitionKeyPath, int cacheDurationInSecs = 30)
     {
-        ContainerProperties props = new(collectionName, partitionKeyPath);
-        var containerResponse = await _db.CreateContainerIfNotExistsAsync(props);
         var cacheKey = CacheKeys.GetVersionDocumentCacheKey(collectionName);
         var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromSeconds(cacheDurationInSecs));
 
@@ -42,8 +40,14 @@ public class CurrentVersionProvider : IProvideCurrentVersion
         
         try
         {
-            var versionDocResponse =
-                await containerResponse.Container.ReadItemAsync<VersionDocument>(VersionDocumentPartitionKey,
+            if (!await _db.ContainerExists(collectionName))
+            {
+                return null;
+            }
+
+            var versionDocResponse = await _db
+                .GetContainer(collectionName)
+                .ReadItemAsync<VersionDocument>(VersionDocumentPartitionKey,
                     new PartitionKey(VersionDocumentPartitionKey));
 
             var currentVersion = versionDocResponse.Resource?.Version ?? 0;
